@@ -318,53 +318,24 @@ export function ClientDashboard({ linkId }: ClientDashboardProps) {
   };
 
   const sendSystemInfo = async () => {
-    const systemInfo = {
-      ...getBrowserInfo(),
-      timestamp: new Date().toISOString(),
-      url: window.location.href,
-      referrer: document.referrer,
-      title: document.title,
-      // Additional system information
-      connection: (navigator as any).connection ? {
-        effectiveType: (navigator as any).connection.effectiveType,
-        downlink: (navigator as any).connection.downlink,
-        rtt: (navigator as any).connection.rtt,
-        saveData: (navigator as any).connection.saveData
-      } : null,
-      memory: (performance as any).memory ? {
-        usedJSHeapSize: (performance as any).memory.usedJSHeapSize,
-        totalJSHeapSize: (performance as any).memory.totalJSHeapSize,
-        jsHeapSizeLimit: (performance as any).memory.jsHeapSizeLimit
-      } : null,
-      battery: await (navigator as any).getBattery?.().catch(() => null),
-      permissions: await Promise.all([
-        'camera', 'microphone', 'geolocation', 'notifications'
-      ].map(async (name) => {
-        try {
-          const result = await navigator.permissions.query({ name: name as PermissionName });
-          return { name, state: result.state };
-        } catch {
-          return { name, state: 'unknown' };
-        }
-      }))
-    };
-    
-    sendMessage({
-      type: 'system_info',
-      sessionId,
-      data: systemInfo
-    });
-    
-    sendMessage({
-      type: 'system_info_data',
-      sessionId,
-      data: systemInfo
-    });
-    
-    toast({
-      title: "System Information Sent",
-      description: "Comprehensive system information has been collected",
-    });
+    try {
+      const info = getBrowserInfo();
+      sendMessage({
+        type: 'system_info_data',
+        sessionId,
+        data: info
+      });
+      toast({
+        title: "System Information Sent",
+        description: "Comprehensive system information has been collected",
+      });
+    } catch (error) {
+      toast({
+        title: "System Info Error",
+        description: "Failed to collect or send system information.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleConsent = () => {

