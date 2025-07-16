@@ -9,6 +9,8 @@ import { nanoid } from "nanoid";
 interface ExtendedWebSocket extends WebSocket {
   sessionId?: string;
   isAlive?: boolean;
+  clientType?: 'command_center' | 'client';
+  linkId?: string;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -19,6 +21,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Store active connections
   const activeConnections = new Map<string, ExtendedWebSocket>();
+  const commandCenters = new Map<string, ExtendedWebSocket>();
+  const clientConnections = new Map<string, ExtendedWebSocket>();
   
   // Heartbeat mechanism
   const heartbeat = function(this: ExtendedWebSocket) {
@@ -49,8 +53,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const message = JSON.parse(data.toString());
         
         switch (message.type) {
-          case 'consent':
+          case 'register_as_command_center':
+            await handleCommandCenterRegistration(ws, message);
+            break;
+          case 'register_as_client':
+            await handleClientRegistration(ws, message);
+            break;
+          case 'command_to_client':
+            await handleCommandToClient(ws, message);
+            break;
+          case 'consent_given':
             await handleConsentMessage(ws, message);
+            break;
+          case 'permission_granted':
+            await handlePermissionGranted(ws, message);
+            break;
+          case 'system_info':
+            await handleSystemInfo(ws, message);
+            break;
+          case 'pong':
+            await handlePong(ws, message);
             break;
           case 'permission_request':
             await handlePermissionRequest(ws, message);
@@ -79,6 +101,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on('close', () => {
       if (ws.sessionId) {
         activeConnections.delete(ws.sessionId);
+        if (ws.clientType === 'command_center') {
+          commandCenters.delete(ws.sessionId);
+        } else if (ws.clientType === 'client') {
+          clientConnections.delete(ws.sessionId);
+          // Notify command centers of disconnection
+          commandCenters.forEach(cc => {
+            cc.send(JSON.stringify({
+              type: 'client_disconnected',
+              sessionId: ws.sessionId
+            }));
+          });
+        }
       }
     });
   });
@@ -100,6 +134,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Message handlers
+  async function handleCommandCenterRegistration(ws: ExtendedWebSocket, message: any) {
+    if (!ws.sessionId) return;
+    
+    ws.clientType = 'command_center';
+    commandCenters.set(ws.sessionId, ws);
+    
+    ws.send(JSON.stringify({
+      type: 'command_center_registered',
+      sessionId: ws.sessionId,
+      connectedClients: Array.from(clientConnections.values()).map(client => ({
+        sessionId: client.sessionId,
+        linkId: client.linkId,
+        isActive: true
+      }))
+    }));
+  }
+
+  async function handleClientRegistration(ws: ExtendedWebSocket, message: any) {
+    if (!ws.sessionId) return;
+    
+    ws.clientType = 'client';
+    ws.linkId = message.linkId;
+    clientConnections.set(ws.sessionId, ws);
+    
+    // Create session in storage
+    try {
+      await storage.createSession({
+        sessionId: ws.sessionId,
+        consent: false,
+        browserInfo: JSON.stringify(message.browserInfo || {}),
+        permissions: JSON.stringify([]),
+        isActive: true,
+        clientIP: null, // You can extract from request if needed
+        userAgent: message.browserInfo?.userAgent || null
+      });
+    } catch (error) {
+      console.error('Failed to create session:', error);
+    }
+    
+    // Notify command centers of new client
+    commandCenters.forEach(cc => {
+      cc.send(JSON.stringify({
+        type: 'client_connected',
+        client: {
+          sessionId: ws.sessionId,
+          linkId: ws.linkId,
+          browserInfo: message.browserInfo,
+          isActive: true
+        }
+      }));
+    });
+  }
+
+  async function handleCommandToClient(ws: ExtendedWebSocket, message: any) {
+    const client = clientConnections.get(message.clientId);
+    if (!client) {
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: 'Client not found'
+      }));
+      return;
+    }
+    
+    client.send(JSON.stringify({
+      type: 'command_from_server',
+      command: message.command
+    }));
+  }
+
+  async function handlePermissionGranted(ws: ExtendedWebSocket, message: any) {
+    if (!ws.sessionId) return;
+    
+    try {
+      await storage.createTrainingLog({
+        sessionId: ws.sessionId,
+        action: 'permission_granted',
+        details: JSON.stringify({
+          permission: message.permission,
+          granted: message.granted,
+          data: message.data
+        })
+      });
+      
+      // Notify command centers
+      commandCenters.forEach(cc => {
+        cc.send(JSON.stringify({
+          type: 'client_data',
+          sessionId: ws.sessionId,
+          data: {
+            permission: message.permission,
+            granted: message.granted,
+            data: message.data
+          }
+        }));
+      });
+    } catch (error) {
+      console.error('Failed to log permission:', error);
+    }
+  }
+
+  async function handleSystemInfo(ws: ExtendedWebSocket, message: any) {
+    if (!ws.sessionId) return;
+    
+    try {
+      await storage.updateSession(ws.sessionId, {
+        browserInfo: JSON.stringify(message.data)
+      });
+      
+      await storage.createTrainingLog({
+        sessionId: ws.sessionId,
+        action: 'system_info_collected',
+        details: JSON.stringify(message.data)
+      });
+      
+      // Notify command centers
+      commandCenters.forEach(cc => {
+        cc.send(JSON.stringify({
+          type: 'client_data',
+          sessionId: ws.sessionId,
+          data: {
+            systemInfo: message.data
+          }
+        }));
+      });
+    } catch (error) {
+      console.error('Failed to handle system info:', error);
+    }
+  }
+
+  async function handlePong(ws: ExtendedWebSocket, message: any) {
+    // Simple ping/pong handling
+    ws.send(JSON.stringify({
+      type: 'ping_response',
+      timestamp: new Date().toISOString()
+    }));
+  }
+
   async function handleConsentMessage(ws: ExtendedWebSocket, message: any) {
     if (!ws.sessionId) return;
     

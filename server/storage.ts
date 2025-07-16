@@ -51,7 +51,13 @@ export class MemStorage implements IStorage {
       ...insertSession, 
       id, 
       userId: null,
-      createdAt: new Date()
+      createdAt: new Date(),
+      consent: insertSession.consent ?? false,
+      browserInfo: insertSession.browserInfo ?? null,
+      permissions: insertSession.permissions ?? null,
+      isActive: insertSession.isActive ?? true,
+      clientIP: insertSession.clientIP ?? null,
+      userAgent: insertSession.userAgent ?? null
     };
     this.sessions.set(session.sessionId, session);
     return session;
@@ -75,7 +81,8 @@ export class MemStorage implements IStorage {
     const log: TrainingLog = { 
       ...insertLog, 
       id, 
-      timestamp: new Date()
+      timestamp: new Date(),
+      details: insertLog.details ?? null
     };
     this.trainingLogs.set(id, log);
     return log;

@@ -6,13 +6,19 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useState } from "react";
 import { Landing } from "@/pages/landing";
 import { Dashboard } from "@/pages/dashboard";
+import { CommandCenter } from "@/pages/command-center";
+import { ClientDashboard } from "@/pages/client-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
-  const [currentPage, setCurrentPage] = useState<'landing' | 'dashboard'>('landing');
+  const [currentPage, setCurrentPage] = useState<'landing' | 'dashboard' | 'command'>('landing');
 
   const handleProceedToDashboard = () => {
     setCurrentPage('dashboard');
+  };
+
+  const handleProceedToCommand = () => {
+    setCurrentPage('command');
   };
 
   const handleExitTraining = () => {
@@ -23,10 +29,15 @@ function Router() {
     <Switch>
       <Route path="/">
         {currentPage === 'landing' ? (
-          <Landing onProceed={handleProceedToDashboard} />
-        ) : (
+          <Landing onProceed={handleProceedToDashboard} onCommand={handleProceedToCommand} />
+        ) : currentPage === 'dashboard' ? (
           <Dashboard onExit={handleExitTraining} />
+        ) : (
+          <CommandCenter onExit={handleExitTraining} />
         )}
+      </Route>
+      <Route path="/client/:linkId">
+        {(params) => <ClientDashboard linkId={params.linkId} />}
       </Route>
       <Route component={NotFound} />
     </Switch>

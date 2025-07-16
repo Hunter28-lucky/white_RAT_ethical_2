@@ -4,9 +4,10 @@ import { Shield, AlertTriangle, ShieldQuestion, Camera, Mic, MapPin, Monitor } f
 
 interface LandingProps {
   onProceed: () => void;
+  onCommand: () => void;
 }
 
-export function Landing({ onProceed }: LandingProps) {
+export function Landing({ onProceed, onCommand }: LandingProps) {
   const permissions = [
     { icon: Camera, label: 'Camera Access (Educational Demo)' },
     { icon: Mic, label: 'Microphone Access (Educational Demo)' },
@@ -88,17 +89,26 @@ export function Landing({ onProceed }: LandingProps) {
             </CardContent>
           </Card>
 
-          {/* Consent Button */}
-          <div className="text-center">
-            <Button 
-              onClick={onProceed}
-              className="bg-gradient-to-r from-cyan-400 to-green-400 text-slate-900 px-8 py-4 text-lg font-semibold hover:from-green-400 hover:to-cyan-400 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-            >
-              <Shield className="mr-2" />
-              I Understand & Agree to Proceed
-            </Button>
-            <p className="text-xs text-slate-400 mt-4">
-              By clicking this button, you acknowledge that you understand this is an educational platform
+          {/* Consent Buttons */}
+          <div className="text-center space-y-4">
+            <div className="flex flex-col md:flex-row gap-4 justify-center">
+              <Button 
+                onClick={onProceed}
+                className="bg-gradient-to-r from-cyan-400 to-green-400 text-slate-900 px-8 py-4 text-lg font-semibold hover:from-green-400 hover:to-cyan-400 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              >
+                <Shield className="mr-2" />
+                Enter Training Mode
+              </Button>
+              <Button 
+                onClick={onCommand}
+                className="bg-gradient-to-r from-red-500 to-orange-500 text-white px-8 py-4 text-lg font-semibold hover:from-orange-500 hover:to-red-500 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              >
+                <Shield className="mr-2" />
+                Open Command Center
+              </Button>
+            </div>
+            <p className="text-xs text-slate-400">
+              Training Mode: Educational demonstrations • Command Center: Control panel for demonstrations
             </p>
           </div>
         </div>

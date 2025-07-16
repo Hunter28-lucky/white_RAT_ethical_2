@@ -15,6 +15,9 @@ export const sessions = pgTable("sessions", {
   consent: boolean("consent").default(false),
   browserInfo: text("browser_info"),
   permissions: text("permissions"),
+  isActive: boolean("is_active").default(true),
+  clientIP: text("client_ip"),
+  userAgent: text("user_agent"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -36,6 +39,9 @@ export const insertSessionSchema = createInsertSchema(sessions).pick({
   consent: true,
   browserInfo: true,
   permissions: true,
+  isActive: true,
+  clientIP: true,
+  userAgent: true,
 });
 
 export const insertTrainingLogSchema = createInsertSchema(trainingLogs).pick({
