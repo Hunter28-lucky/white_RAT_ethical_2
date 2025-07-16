@@ -16,6 +16,61 @@ interface ExtendedWebSocket extends WebSocket {
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   
+  // API Routes
+  app.get('/api/sessions', async (req, res) => {
+    try {
+      // Get all sessions from storage
+      const sessions = Array.from((storage as any).sessions?.values() || []);
+      res.json(sessions);
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+      res.status(500).json({ error: 'Failed to fetch sessions' });
+    }
+  });
+
+  app.get('/api/logs', async (req, res) => {
+    try {
+      // Get all training logs from storage
+      const logs = Array.from((storage as any).trainingLogs?.values() || []);
+      res.json(logs);
+    } catch (error) {
+      console.error('Error fetching logs:', error);
+      res.status(500).json({ error: 'Failed to fetch logs' });
+    }
+  });
+
+  app.get('/api/sessions/:id', async (req, res) => {
+    try {
+      const session = await storage.getSession(req.params.id);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+      res.json(session);
+    } catch (error) {
+      console.error('Error fetching session:', error);
+      res.status(500).json({ error: 'Failed to fetch session' });
+    }
+  });
+
+  app.get('/api/sessions/:id/logs', async (req, res) => {
+    try {
+      const logs = await storage.getTrainingLogsBySession(req.params.id);
+      res.json(logs);
+    } catch (error) {
+      console.error('Error fetching session logs:', error);
+      res.status(500).json({ error: 'Failed to fetch session logs' });
+    }
+  });
+
+  app.get('/api/status', (req, res) => {
+    res.json({ 
+      server_status: "running",
+      connected_clients: activeConnections.size,
+      platform: "WebRAT-Lite Educational Platform",
+      timestamp: new Date().toISOString()
+    });
+  });
+  
   // WebSocket server setup
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
   
@@ -194,8 +249,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   async function handleCommandToClient(ws: ExtendedWebSocket, message: any) {
+    console.log('Handling command to client:', message.clientId, message.command);
     const client = clientConnections.get(message.clientId);
     if (!client) {
+      console.log('Client not found:', message.clientId);
+      console.log('Available clients:', Array.from(clientConnections.keys()));
       ws.send(JSON.stringify({
         type: 'error',
         message: 'Client not found'
@@ -203,10 +261,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return;
     }
     
+    console.log('Sending command to client:', message.command);
     client.send(JSON.stringify({
       type: 'command_from_server',
       command: message.command
     }));
+    
+    // Log the command
+    try {
+      await storage.createTrainingLog({
+        sessionId: message.clientId,
+        action: 'command_sent',
+        details: JSON.stringify({
+          command: message.command,
+          timestamp: new Date().toISOString()
+        })
+      });
+    } catch (error) {
+      console.error('Failed to log command:', error);
+    }
   }
 
   async function handlePermissionGranted(ws: ExtendedWebSocket, message: any) {

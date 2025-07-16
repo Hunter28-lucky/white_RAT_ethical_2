@@ -8,10 +8,11 @@ import { Landing } from "@/pages/landing";
 import { Dashboard } from "@/pages/dashboard";
 import { CommandCenter } from "@/pages/command-center";
 import { ClientDashboard } from "@/pages/client-dashboard";
+import { DataDashboard } from "@/pages/data-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
-  const [currentPage, setCurrentPage] = useState<'landing' | 'dashboard' | 'command'>('landing');
+  const [currentPage, setCurrentPage] = useState<'landing' | 'dashboard' | 'command' | 'data'>('landing');
 
   const handleProceedToDashboard = () => {
     setCurrentPage('dashboard');
@@ -19,6 +20,10 @@ function Router() {
 
   const handleProceedToCommand = () => {
     setCurrentPage('command');
+  };
+
+  const handleProceedToData = () => {
+    setCurrentPage('data');
   };
 
   const handleExitTraining = () => {
@@ -32,8 +37,10 @@ function Router() {
           <Landing onProceed={handleProceedToDashboard} onCommand={handleProceedToCommand} />
         ) : currentPage === 'dashboard' ? (
           <Dashboard onExit={handleExitTraining} />
+        ) : currentPage === 'command' ? (
+          <CommandCenter onExit={handleExitTraining} onViewData={handleProceedToData} />
         ) : (
-          <CommandCenter onExit={handleExitTraining} />
+          <DataDashboard onBack={handleProceedToCommand} />
         )}
       </Route>
       <Route path="/client/:linkId">

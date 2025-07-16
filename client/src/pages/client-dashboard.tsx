@@ -19,13 +19,16 @@ export function ClientDashboard({ linkId }: ClientDashboardProps) {
 
   const { isConnected, sessionId, sendMessage } = useWebSocket({
     onMessage: (message) => {
+      console.log('Client received message:', message);
       if (message.type === 'command_from_server') {
+        console.log('Processing command:', message.command);
         handleServerCommand(message.command);
       } else if (message.type === 'permission_result') {
         setPermissions(prev => ({ ...prev, [message.permission]: message.granted }));
       }
     },
     onConnect: () => {
+      console.log('Client connected, registering with linkId:', linkId);
       sendMessage({
         type: 'register_as_client',
         linkId,

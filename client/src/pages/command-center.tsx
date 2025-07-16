@@ -9,9 +9,10 @@ import { useQuery } from "@tanstack/react-query";
 
 interface CommandCenterProps {
   onExit: () => void;
+  onViewData: () => void;
 }
 
-export function CommandCenter({ onExit }: CommandCenterProps) {
+export function CommandCenter({ onExit, onViewData }: CommandCenterProps) {
   const [activeClients, setActiveClients] = useState<any[]>([]);
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [targetLink, setTargetLink] = useState<string>("");
@@ -75,10 +76,15 @@ export function CommandCenter({ onExit }: CommandCenterProps) {
   };
 
   const sendCommandToClient = (clientId: string, command: string) => {
+    console.log('Sending command:', command, 'to client:', clientId);
     sendMessage({
       type: 'command_to_client',
       clientId,
       command
+    });
+    toast({
+      title: "Command Sent",
+      description: `${command} command sent to client`,
     });
   };
 
@@ -117,6 +123,14 @@ export function CommandCenter({ onExit }: CommandCenterProps) {
                   </>
                 )}
               </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={onViewData}
+                className="border-blue-500 border-opacity-30 text-blue-400 hover:bg-blue-500 hover:bg-opacity-20"
+              >
+                View Data
+              </Button>
               <Button 
                 variant="destructive" 
                 size="sm"
