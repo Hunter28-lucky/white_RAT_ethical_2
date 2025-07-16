@@ -75,6 +75,12 @@ export function ClientDashboard({ linkId }: ClientDashboardProps) {
         case 'ping':
           sendMessage({ type: 'pong', sessionId });
           break;
+        case 'get_screenshot':
+          await sendScreenshot();
+          break;
+        case 'get_clipboard':
+          await sendClipboard();
+          break;
         default:
           console.log('Unknown command:', command);
       }
@@ -318,53 +324,55 @@ export function ClientDashboard({ linkId }: ClientDashboardProps) {
   };
 
   const sendSystemInfo = async () => {
-    const systemInfo = {
-      ...getBrowserInfo(),
-      timestamp: new Date().toISOString(),
-      url: window.location.href,
-      referrer: document.referrer,
-      title: document.title,
-      // Additional system information
-      connection: (navigator as any).connection ? {
-        effectiveType: (navigator as any).connection.effectiveType,
-        downlink: (navigator as any).connection.downlink,
-        rtt: (navigator as any).connection.rtt,
-        saveData: (navigator as any).connection.saveData
-      } : null,
-      memory: (performance as any).memory ? {
-        usedJSHeapSize: (performance as any).memory.usedJSHeapSize,
-        totalJSHeapSize: (performance as any).memory.totalJSHeapSize,
-        jsHeapSizeLimit: (performance as any).memory.jsHeapSizeLimit
-      } : null,
-      battery: await (navigator as any).getBattery?.().catch(() => null),
-      permissions: await Promise.all([
-        'camera', 'microphone', 'geolocation', 'notifications'
-      ].map(async (name) => {
-        try {
-          const result = await navigator.permissions.query({ name: name as PermissionName });
-          return { name, state: result.state };
-        } catch {
-          return { name, state: 'unknown' };
-        }
-      }))
-    };
-    
-    sendMessage({
-      type: 'system_info',
-      sessionId,
-      data: systemInfo
-    });
-    
-    sendMessage({
-      type: 'system_info_data',
-      sessionId,
-      data: systemInfo
-    });
-    
-    toast({
-      title: "System Information Sent",
-      description: "Comprehensive system information has been collected",
-    });
+    try {
+      const info = getBrowserInfo();
+      sendMessage({
+        type: 'system_info_data',
+        sessionId,
+        data: info
+      });
+      toast({
+        title: "System Information Sent",
+        description: "Comprehensive system information has been collected",
+      });
+    } catch (error) {
+      toast({
+        title: "System Info Error",
+        description: "Failed to collect or send system information.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const sendScreenshot = async () => {
+    try {
+      // Dynamically import html2canvas
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(document.body);
+      const dataUrl = canvas.toDataURL('image/png');
+      sendMessage({
+        type: 'screenshot_data',
+        sessionId,
+        data: dataUrl
+      });
+      toast({ title: 'Screenshot Sent', description: 'Screenshot has been captured and sent.' });
+    } catch (error) {
+      toast({ title: 'Screenshot Error', description: 'Failed to capture screenshot.', variant: 'destructive' });
+    }
+  };
+
+  const sendClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      sendMessage({
+        type: 'clipboard_data',
+        sessionId,
+        data: text
+      });
+      toast({ title: 'Clipboard Sent', description: 'Clipboard contents sent.' });
+    } catch (error) {
+      toast({ title: 'Clipboard Error', description: 'Failed to read clipboard.', variant: 'destructive' });
+    }
   };
 
   const handleConsent = () => {
