@@ -38,7 +38,13 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
       wsRef.current.onmessage = (event) => {
         try {
-          const message = JSON.parse(event.data);
+          let message;
+          if (typeof event.data === 'string') {
+            message = JSON.parse(event.data);
+          } else {
+            console.error('Received non-string WebSocket message:', event.data);
+            return;
+          }
           
           if (message.type === 'connection' && message.sessionId) {
             setSessionId(message.sessionId);
@@ -47,6 +53,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           options.onMessage?.(message);
         } catch (error) {
           console.error('Failed to parse WebSocket message:', error);
+          console.error('Raw event data:', event.data);
         }
       };
 
@@ -88,7 +95,12 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
   const sendMessage = (message: WebSocketMessage) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(message));
+      try {
+        const jsonMessage = JSON.stringify(message);
+        wsRef.current.send(jsonMessage);
+      } catch (error) {
+        console.error('Failed to stringify message:', error, message);
+      }
     } else {
       console.warn('WebSocket is not connected');
     }

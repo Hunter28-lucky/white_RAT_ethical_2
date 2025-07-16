@@ -19,25 +19,29 @@ export function CommandCenter({ onExit }: CommandCenterProps) {
 
   const { isConnected, sendMessage } = useWebSocket({
     onMessage: (message) => {
-      if (message.type === 'client_connected') {
-        setActiveClients(prev => [...prev, message.client]);
-        toast({
-          title: "New Client Connected",
-          description: `Client ${message.client.sessionId} is now connected`,
-        });
-      } else if (message.type === 'client_disconnected') {
-        setActiveClients(prev => prev.filter(client => client.sessionId !== message.sessionId));
-        toast({
-          title: "Client Disconnected",
-          description: `Client ${message.sessionId} has disconnected`,
-          variant: "destructive",
-        });
-      } else if (message.type === 'client_data') {
-        setActiveClients(prev => prev.map(client => 
-          client.sessionId === message.sessionId 
-            ? { ...client, ...message.data }
-            : client
-        ));
+      try {
+        if (message.type === 'client_connected' && message.client) {
+          setActiveClients(prev => [...prev, message.client]);
+          toast({
+            title: "New Client Connected",
+            description: `Client ${message.client.sessionId || 'unknown'} is now connected`,
+          });
+        } else if (message.type === 'client_disconnected' && message.sessionId) {
+          setActiveClients(prev => prev.filter(client => client.sessionId !== message.sessionId));
+          toast({
+            title: "Client Disconnected",
+            description: `Client ${message.sessionId} has disconnected`,
+            variant: "destructive",
+          });
+        } else if (message.type === 'client_data' && message.sessionId) {
+          setActiveClients(prev => prev.map(client => 
+            client.sessionId === message.sessionId 
+              ? { ...client, ...message.data }
+              : client
+          ));
+        }
+      } catch (error) {
+        console.error('Error handling WebSocket message:', error);
       }
     },
     onConnect: () => {
@@ -290,7 +294,14 @@ export function CommandCenter({ onExit }: CommandCenterProps) {
                             </div>
                             {client.browserInfo && (
                               <div className="text-xs text-slate-400">
-                                <p>Browser: {JSON.parse(client.browserInfo).userAgent?.substring(0, 50)}...</p>
+                                <p>Browser: {(() => {
+                                  try {
+                                    const info = typeof client.browserInfo === 'string' ? JSON.parse(client.browserInfo) : client.browserInfo;
+                                    return info.userAgent?.substring(0, 50) || 'Unknown';
+                                  } catch {
+                                    return 'Unknown';
+                                  }
+                                })()}...</p>
                                 <p>IP: {client.clientIP || 'Unknown'}</p>
                               </div>
                             )}

@@ -90,6 +90,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }));
         }
       } catch (error) {
+        console.error('WebSocket message error:', error);
+        console.error('Raw message data:', data.toString());
         ws.send(JSON.stringify({
           type: 'error',
           message: 'Invalid message format'
@@ -175,15 +177,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // Notify command centers of new client
     commandCenters.forEach(cc => {
-      cc.send(JSON.stringify({
-        type: 'client_connected',
-        client: {
-          sessionId: ws.sessionId,
-          linkId: ws.linkId,
-          browserInfo: message.browserInfo,
-          isActive: true
-        }
-      }));
+      try {
+        cc.send(JSON.stringify({
+          type: 'client_connected',
+          client: {
+            sessionId: ws.sessionId,
+            linkId: ws.linkId,
+            browserInfo: message.browserInfo ? JSON.stringify(message.browserInfo) : null,
+            isActive: true
+          }
+        }));
+      } catch (error) {
+        console.error('Failed to send client_connected message:', error);
+      }
     });
   }
 
@@ -219,15 +225,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Notify command centers
       commandCenters.forEach(cc => {
-        cc.send(JSON.stringify({
-          type: 'client_data',
-          sessionId: ws.sessionId,
-          data: {
-            permission: message.permission,
-            granted: message.granted,
-            data: message.data
-          }
-        }));
+        try {
+          cc.send(JSON.stringify({
+            type: 'client_data',
+            sessionId: ws.sessionId,
+            data: {
+              permission: message.permission,
+              granted: message.granted,
+              data: message.data
+            }
+          }));
+        } catch (error) {
+          console.error('Failed to send client_data message:', error);
+        }
       });
     } catch (error) {
       console.error('Failed to log permission:', error);
@@ -250,13 +260,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Notify command centers
       commandCenters.forEach(cc => {
-        cc.send(JSON.stringify({
-          type: 'client_data',
-          sessionId: ws.sessionId,
-          data: {
-            systemInfo: message.data
-          }
-        }));
+        try {
+          cc.send(JSON.stringify({
+            type: 'client_data',
+            sessionId: ws.sessionId,
+            data: {
+              systemInfo: message.data
+            }
+          }));
+        } catch (error) {
+          console.error('Failed to send system_info message:', error);
+        }
       });
     } catch (error) {
       console.error('Failed to handle system info:', error);
