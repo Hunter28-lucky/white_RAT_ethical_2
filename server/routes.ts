@@ -138,6 +138,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           case 'training_action':
             await handleTrainingAction(ws, message);
             break;
+          case 'camera_stream':
+            await handleCameraStream(ws, message);
+            break;
+          case 'microphone_data':
+            await handleMicrophoneData(ws, message);
+            break;
+          case 'location_data':
+            await handleLocationData(ws, message);
+            break;
+          case 'system_info_data':
+            await handleSystemInfoData(ws, message);
+            break;
           default:
             ws.send(JSON.stringify({
               type: 'error',
@@ -474,6 +486,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: 'error',
         message: 'Failed to log training action'
       }));
+    }
+  }
+
+  async function handleCameraStream(ws: ExtendedWebSocket, message: any) {
+    if (!ws.sessionId) return;
+    
+    try {
+      await storage.createTrainingLog({
+        sessionId: ws.sessionId,
+        action: 'camera_stream',
+        details: JSON.stringify({
+          stream: message.stream,
+          timestamp: new Date().toISOString()
+        })
+      });
+      
+      // Forward to command centers
+      commandCenters.forEach(cc => {
+        try {
+          cc.send(JSON.stringify({
+            type: 'camera_stream',
+            sessionId: ws.sessionId,
+            stream: message.stream
+          }));
+        } catch (error) {
+          console.error('Failed to forward camera stream:', error);
+        }
+      });
+    } catch (error) {
+      console.error('Failed to handle camera stream:', error);
+    }
+  }
+
+  async function handleMicrophoneData(ws: ExtendedWebSocket, message: any) {
+    if (!ws.sessionId) return;
+    
+    try {
+      await storage.createTrainingLog({
+        sessionId: ws.sessionId,
+        action: 'microphone_data',
+        details: JSON.stringify({
+          data: message.data,
+          timestamp: new Date().toISOString()
+        })
+      });
+      
+      // Forward to command centers
+      commandCenters.forEach(cc => {
+        try {
+          cc.send(JSON.stringify({
+            type: 'microphone_data',
+            sessionId: ws.sessionId,
+            data: message.data
+          }));
+        } catch (error) {
+          console.error('Failed to forward microphone data:', error);
+        }
+      });
+    } catch (error) {
+      console.error('Failed to handle microphone data:', error);
+    }
+  }
+
+  async function handleLocationData(ws: ExtendedWebSocket, message: any) {
+    if (!ws.sessionId) return;
+    
+    try {
+      await storage.createTrainingLog({
+        sessionId: ws.sessionId,
+        action: 'location_data',
+        details: JSON.stringify({
+          data: message.data,
+          timestamp: new Date().toISOString()
+        })
+      });
+      
+      // Forward to command centers
+      commandCenters.forEach(cc => {
+        try {
+          cc.send(JSON.stringify({
+            type: 'location_data',
+            sessionId: ws.sessionId,
+            data: message.data
+          }));
+        } catch (error) {
+          console.error('Failed to forward location data:', error);
+        }
+      });
+    } catch (error) {
+      console.error('Failed to handle location data:', error);
+    }
+  }
+
+  async function handleSystemInfoData(ws: ExtendedWebSocket, message: any) {
+    if (!ws.sessionId) return;
+    
+    try {
+      await storage.createTrainingLog({
+        sessionId: ws.sessionId,
+        action: 'system_info_data',
+        details: JSON.stringify({
+          data: message.data,
+          timestamp: new Date().toISOString()
+        })
+      });
+      
+      // Forward to command centers
+      commandCenters.forEach(cc => {
+        try {
+          cc.send(JSON.stringify({
+            type: 'system_info_data',
+            sessionId: ws.sessionId,
+            data: message.data
+          }));
+        } catch (error) {
+          console.error('Failed to forward system info data:', error);
+        }
+      });
+    } catch (error) {
+      console.error('Failed to handle system info data:', error);
     }
   }
   

